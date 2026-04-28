@@ -1,14 +1,11 @@
-// Netlify Function: Handle Prokerala OAuth
-// This keeps Client Secret safe on backend
-
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+// Netlify Function: Prokerala OAuth Handler (FIXED)
 
 exports.handler = async (event, context) => {
-  // Only allow POST requests
+  // Only allow POST
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
-      body: JSON.stringify({ error: 'Method Not Allowed' })
+      body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
 
@@ -16,69 +13,91 @@ exports.handler = async (event, context) => {
     const CLIENT_ID = process.env.PROKERALA_CLIENT_ID;
     const CLIENT_SECRET = process.env.PROKERALA_CLIENT_SECRET;
 
+    console.log('Getting token with:', { CLIENT_ID: CLIENT_ID ? 'Set' : 'Missing', CLIENT_SECRET: CLIENT_SECRET ? 'Set' : 'Missing' });
+
     if (!CLIENT_ID || !CLIENT_SECRET) {
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: 'Missing credentials' })
+        body: JSON.stringify({ error: 'Missing credentials in environment' })
       };
     }
 
-    // Get access token
-    const authResponse = await fetch('https://api.prokerala.com/oauth/token', {
+    // Step 1: Get Access Token
+    const tokenResponse = await fetch('https://api.prokerala.com/oauth/token', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({
+      body: new URLSearchParams({
         grant_type: 'client_credentials',
         client_id: CLIENT_ID,
         client_secret: CLIENT_SECRET,
         scope: 'astrology'
+      }).toString()
+    });
+
+    console.log('Token response status:', tokenResponse.status);
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error('Token error:', errorText);
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ error: 'Failed to authenticate', details: errorText })
+      };
+    }
+
+    const tokenData = await tokenResponse.json();
+    console.log('Got token:', tokenData.access_token ? 'Yes' : 'No');
+
+    if (!tokenData.access_token) {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ error: 'No access token in response' })
+      };
+    }
+
+    // Step 2: Get Panchang Data
+    const requestBody = JSON.parse(event.body);
+    const { date, latitude, longitude } = requestBody;
+
+    console.log('Calling panchang with:', { date, latitude, longitude });
+
+    const panchangResponse = await fetch('https://api.prokerala.com/v2/astrology/panchang/', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        date: date,
+        latitude: latitude,
+        longitude: longitude,
+        timezone: 'Asia/Kolkata'
       })
     });
 
-    const authData = await authResponse.json();
+    console.log('Panchang response status:', panchangResponse.status);
 
-    if (!authData.access_token) {
+    if (!panchangResponse.ok) {
+      const errorText = await panchangResponse.text();
+      console.error('Panchang error:', errorText);
       return {
-        statusCode: 401,
-        body: JSON.stringify({ error: 'Failed to get access token' })
+        statusCode: panchangResponse.status,
+        body: JSON.stringify({ error: 'Failed to get panchang', details: errorText })
       };
     }
 
-    // If request is for panchang data
-    const { action, date, latitude, longitude } = JSON.parse(event.body);
-
-    if (action === 'panchang') {
-      const panchangResponse = await fetch('https://api.prokerala.com/v2/astrology/panchang/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authData.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          date: date,
-          latitude: latitude,
-          longitude: longitude,
-          timezone: 'Asia/Kolkata'
-        })
-      });
-
-      const panchangData = await panchangResponse.json();
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify(panchangData)
-      };
-    }
+    const panchangData = await panchangResponse.json();
+    console.log('Got panchang data');
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ access_token: authData.access_token })
+      body: JSON.stringify(panchangData)
     };
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Function error:', error);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: error.message })
