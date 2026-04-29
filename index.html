@@ -24,6 +24,7 @@
             --text-secondary: #cbd5e1;
             --success: #10b981;
             --error: #ef4444;
+            --warning: #f59e0b;
         }
 
         html, body {
@@ -110,9 +111,9 @@
         }
 
         .api-status.loading {
-            background: rgba(255, 193, 7, 0.1);
-            color: #FFC107;
-            border: 1px solid #FFC107;
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            border: 1px solid var(--warning);
         }
 
         .calendar-grid {
@@ -149,6 +150,34 @@
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
             color: white;
             box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .panchang-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .panchang-item {
+            background: rgba(71, 85, 105, 0.2);
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .panchang-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .panchang-value {
+            font-size: 14px;
+            color: var(--text-primary);
+            font-weight: 700;
+            margin-top: 4px;
         }
 
         .nav-bottom {
@@ -199,14 +228,6 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        .page {
-            display: none;
-        }
-
-        .page.active {
-            display: block;
-        }
     </style>
 </head>
 <body>
@@ -222,24 +243,24 @@
     </header>
 
     <div class="main">
-        
-        <!-- HOME PAGE -->
-        <div id="page-home" class="page active">
-            <div class="card">
-                <div id="apiStatus" class="api-status loading">📡 Prokerala এর সাথে সংযোগ স্থাপন করছি...</div>
-                
-                <h2 class="h2">আজকের তারিখ</h2>
-                <div id="todayDate" style="font-size: 28px; color: var(--primary); margin: 16px 0;">
-                    <div class="loading-spinner"></div>
-                </div>
+        <div class="card">
+            <div id="apiStatus" class="api-status loading">📡 VedicAstroAPI এর সাথে সংযোগ করছি...</div>
+            
+            <h2 class="h2">আজকের তারিখ</h2>
+            <div id="todayDate" style="font-size: 28px; color: var(--primary); margin: 16px 0;">
+                <div class="loading-spinner"></div>
+            </div>
 
-                <h2 class="h2" style="margin-top: 32px;">📅 ক্যালেন্ডার</h2>
-                <div id="calendarContainer">
-                    <div class="loading-spinner"></div>
-                </div>
+            <h2 class="h2" style="margin-top: 32px;">📅 ক্যালেন্ডার</h2>
+            <div id="calendarContainer">
+                <div class="loading-spinner"></div>
+            </div>
+
+            <h2 class="h2" style="margin-top: 32px;">🌙 পঞ্জিকা</h2>
+            <div id="panchangContainer">
+                <div class="loading-spinner"></div>
             </div>
         </div>
-
     </div>
 
     <nav class="nav-bottom">
@@ -270,7 +291,7 @@
     </nav>
 
     <script>
-        // Bengali month names
+        // Bengali month and day names
         const bengaliMonths = [
             'পৌষ', 'মাঘ', 'ফাল্গুন', 'চৈত্র',
             'বৈশাখ', 'জ্যৈষ্ঠ', 'আষাঢ়', 'শ্রাবণ',
@@ -279,29 +300,42 @@
 
         const bengaliDays = ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহ', 'শুক্র', 'শনি'];
 
-        // Netlify Function Call
-        async function callProkeralaAPI(action, data) {
+        // Call VedicAstroAPI via Netlify Function
+        async function callVedicAstroAPI() {
             try {
-                const response = await fetch('/.netlify/functions/prokerala-auth', {
+                const today = new Date();
+                const dateStr = today.toISOString().split('T')[0];
+
+                console.log('Calling VedicAstroAPI for date:', dateStr);
+
+                const response = await fetch('/.netlify/functions/vedicastro-panchang', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        action: action,
-                        ...data
+                        date: dateStr,
+                        latitude: 22.5726,
+                        longitude: 88.3639,
+                        timezone: 'Asia/Kolkata'
                     })
                 });
+
+                console.log('Response status:', response.status);
 
                 if (!response.ok) {
                     throw new Error(`API error: ${response.status}`);
                 }
 
-                const result = await response.json();
-                return result;
+                const data = await response.json();
+                console.log('Panchang data received:', data);
+
+                updateAPIStatus('✅ সংযুক্ত - রিয়েল ডেটা লোড হচ্ছে', 'success');
+                displayPanchang(data);
+                return data;
             } catch (error) {
-                console.error('Prokerala API Error:', error);
-                updateAPIStatus('❌ API সংযোগ ব্যর্থ - Demo মোড', 'error');
+                console.error('VedicAstroAPI Error:', error);
+                updateAPIStatus('⚠️ সংযোগ ব্যর্থ - Demo মোড', 'error');
                 return null;
             }
         }
@@ -324,8 +358,83 @@
             dateEl.innerHTML = `${dayName}, ${monthName} ${date}, ${year}`;
         }
 
+        // Display panchang information
+        function displayPanchang(data) {
+            const container = document.getElementById('panchangContainer');
+            
+            if (!data) {
+                container.innerHTML = '<p>পঞ্জিকা ডেটা পাওয়া যায়নি</p>';
+                return;
+            }
+
+            let html = '<div class="panchang-info">';
+
+            // Tithi
+            if (data.tithi) {
+                html += `
+                    <div class="panchang-item">
+                        <div class="panchang-label">तिथि</div>
+                        <div class="panchang-value">${data.tithi || 'N/A'}</div>
+                    </div>
+                `;
+            }
+
+            // Nakshatra
+            if (data.nakshatra) {
+                html += `
+                    <div class="panchang-item">
+                        <div class="panchang-label">नक्षत्र</div>
+                        <div class="panchang-value">${data.nakshatra || 'N/A'}</div>
+                    </div>
+                `;
+            }
+
+            // Yoga
+            if (data.yoga) {
+                html += `
+                    <div class="panchang-item">
+                        <div class="panchang-label">योग</div>
+                        <div class="panchang-value">${data.yoga || 'N/A'}</div>
+                    </div>
+                `;
+            }
+
+            // Karan
+            if (data.karan) {
+                html += `
+                    <div class="panchang-item">
+                        <div class="panchang-label">करण</div>
+                        <div class="panchang-value">${data.karan || 'N/A'}</div>
+                    </div>
+                `;
+            }
+
+            // Sunrise
+            if (data.sunrise) {
+                html += `
+                    <div class="panchang-item">
+                        <div class="panchang-label">सूर्योदय</div>
+                        <div class="panchang-value">${data.sunrise || 'N/A'}</div>
+                    </div>
+                `;
+            }
+
+            // Sunset
+            if (data.sunset) {
+                html += `
+                    <div class="panchang-item">
+                        <div class="panchang-label">सूर्यास्त</div>
+                        <div class="panchang-value">${data.sunset || 'N/A'}</div>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
         // Render calendar
-        async function renderCalendar() {
+        function renderCalendar() {
             const year = new Date().getFullYear();
             const month = new Date().getMonth();
             const bengaliMonthName = bengaliMonths[month];
@@ -369,29 +478,15 @@
 
         // Initialize
         async function init() {
-            try {
-                updateAPIStatus('📡 Prokerala API কল করছি...', 'loading');
-                
-                // Call Prokerala API
-                const result = await callProkeralaAPI('panchang', {
-                    date: new Date().toISOString().split('T')[0],
-                    latitude: 22.5726,
-                    longitude: 88.3639
-                });
-
-                if (result && result.tithis) {
-                    updateAPIStatus('✅ সংযুক্ত - রিয়েল ডেটা লোড হচ্ছে', 'success');
-                } else {
-                    updateAPIStatus('⚠️ Demo মোড - API ডেটা পাওয়া যায়নি', 'error');
-                }
-            } catch (error) {
-                console.error('Init error:', error);
-                updateAPIStatus('⚠️ Demo মোড - সংযোগ ব্যর্থ', 'error');
-            }
-
-            // Display data
+            console.log('Initializing...');
+            updateAPIStatus('📡 VedicAstroAPI কল করছি...', 'loading');
+            
+            // Display date and calendar
             displayTodayDate();
             renderCalendar();
+
+            // Get panchang data
+            await callVedicAstroAPI();
         }
 
         // Start when ready
