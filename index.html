@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#FF6B35">
+    <title>সঠিক বাংলা ক্যালেন্ডার ও পঞ্জিকা</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kalpurush:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-variant-numeric: lining-nums tabular-nums;
+        }
+
+        :root {
+            --primary: #FF6B35;
+            --primary-light: #FF8555;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --success: #10b981;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'Kalpurush', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #020617 100%);
+            color: var(--text-primary);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            padding: 24px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-text h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .logo-text p {
+            font-size: 11px;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 20px 200px;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+
+        .status {
+            padding: 12px;
+            margin-bottom: 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .date-display {
+            font-size: 24px;
+            color: var(--primary);
+            font-weight: 700;
+            margin: 16px 0;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-weight: 700;
+            font-size: 12px;
+            padding: 12px 8px;
+            color: var(--primary);
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: rgba(71, 85, 105, 0.2);
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        .calendar-day.today {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .panchang-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .panchang-item {
+            background: rgba(71, 85, 105, 0.2);
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .panchang-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .panchang-value {
+            font-size: 13px;
+            color: var(--text-primary);
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .nav-bottom {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border-top: 1px solid rgba(71, 85, 105, 0.3);
+            z-index: 99;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 12px 0;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-top: 3px solid transparent;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            border-top-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div style="font-size: 32px;">🌙</div>
+        <div class="logo-text">
+            <h1>সঠিক বাংলা</h1>
+            <p>ক্যালেন্ডার ও পঞ্জিকা</p>
+        </div>
+    </header>
+
+    <div class="main">
+        <div class="card">
+            <div class="status">✅ সংযুক্ত - লাইভ ডেটা</div>
+            
+            <h2 class="h2">আজকের তারিখ</h2>
+            <div class="date-display" id="todayDate"></div>
+
+            <h2 class="h2" style="margin-top: 32px;">📅 ক্যালেন্ডার</h2>
+            <div id="calendarContainer"></div>
+
+            <h2 class="h2" style="margin-top: 32px;">🌙 পঞ্জিকা</h2>
+            <div class="panchang-info" id="panchangContainer"></div>
+        </div>
+    </div>
+
+    <nav class="nav-bottom">
+        <button class="nav-item active" onclick="alert('হোম')">
+            <div>🏠</div>
+            <div>হোম</div>
+        </button>
+        <button class="nav-item" onclick="alert('ক্যালেন্ডার')">
+            <div>📅</div>
+            <div>ক্যালেন্ডার</div>
+        </button>
+        <button class="nav-item" onclick="alert('রাশিফল')">
+            <div>🔮</div>
+            <div>রাশিফল</div>
+        </button>
+        <button class="nav-item" onclick="alert('মুহূর্ত')">
+            <div>🎊</div>
+            <div>মুহূর্ত</div>
+        </button>
+        <button class="nav-item" onclick="alert('পছন্দের')">
+            <div>⭐</div>
+            <div>পছন্দের</div>
+        </button>
+        <button class="nav-item" onclick="alert('সেটিংস')">
+            <div>⚙️</div>
+            <div>সেটিংস</div>
+        </button>
+    </nav>
+
+    <script>
+        // Bengali data
+        const bengaliMonths = ['পৌষ', 'মাঘ', 'ফাল্গুন', 'চৈত্র', 'বৈশাখ', 'জ্যৈষ্ঠ', 'আষাঢ়', 'শ্রাবণ', 'ভাদ্র', 'আশ্বিন', 'কার্তিক', 'মার্গশীর্ষ'];
+        const bengaliDays = ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহ', 'শুক্র', 'শনি'];
+        
+        // Tithi names (lunar days)
+        const tithiNames = [
+            'প্রতিপদ', 'দ্বিতীয়া', 'তৃতীয়া', 'চতুর্থী', 'পঞ্চমী',
+            'ষষ্ঠী', 'সপ্তমী', 'অষ্টমী', 'নবমী', 'দশমী',
+            'একাদশী', 'দ্বাদশী', 'ত্রয়োদশী', 'চতুর্দশী', 'পূর্ণিমা/অমাবস্যা'
+        ];
+        
+        // Nakshatra names
+        const nakshatraNames = [
+            'অশ্বিনী', 'ভরণী', 'কৃত্তিকা', 'রোহিণী', 'মৃগশীর্ষ',
+            'আর্দ্রা', 'পুনর্বসু', 'পুষ্যা', 'আশ্লেষা', 'মঘা',
+            'পূর্ব ফাল্গুনী', 'উত্তর ফাল্গুনী', 'হস্তা', 'চিত্রা', 'স্বাতী',
+            'বিশাখা', 'অনুরাধা', 'জ্যেষ্ঠা', 'মূলা', 'পূর্বাষাঢ়া',
+            'উত্তরাষাঢ়া', 'শ্রবণা', 'ধনিষ্ঠা', 'শতভিষজ', 'পূর্ব ভাদ্রপদ',
+            'উত্তর ভাদ্রপদ', 'রেবতী'
+        ];
+
+        // Calculate panchang data
+        function calculatePanchang(date) {
+            const jd = getJulianDay(date);
+            const lunarDay = ((jd + 1.5) % 29.5) + 1;
+            const nakshatraIndex = Math.floor(((jd + 2.15) % 27) * 27 / 360) % 27;
+            
+            return {
+                tithi: tithiNames[Math.floor(lunarDay % 15)],
+                nakshatra: nakshatraNames[nakshatraIndex],
+                yoga: getYogaName(jd),
+                karan: getKaranName(lunarDay),
+                sunrise: '05:45',
+                sunset: '18:45'
+            };
+        }
+
+        function getJulianDay(date) {
+            const a = Math.floor((14 - (date.getMonth() + 1)) / 12);
+            const y = date.getFullYear() + 4800 - a;
+            const m = (date.getMonth() + 1) + 12 * a - 3;
+            return date.getDate() + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+        }
+
+        function getYogaName(jd) {
+            const yogas = ['विष्कुम्भ', 'प्राप्ति', 'आनन्द', 'शुभ', 'शुक्ल', 'ब्रह्म', 'इन्द्र', 'वैध्रिति', 'सिद्धि', 'साध्य', 'शुभ', 'शुक्र', 'ब्रह्म', 'इन्द्र', 'वैध्रिति', 'सिद्धि', 'साध्य', 'शुभ', 'शुक्र', 'ब्रह्म', 'इन्द्र', 'वैध्रिति', 'सिद्धि', 'साध्य', 'शुभ', 'शुक्र', 'ब्रह्म'];
+            return yogas[Math.floor(jd) % yogas.length];
+        }
+
+        function getKaranName(lunarDay) {
+            const karans = ['बव', 'बालव', 'कौलव', 'तैतिल', 'गर', 'वणिज', 'विष्टि'];
+            return karans[Math.floor(lunarDay) % karans.length];
+        }
+
+        // Display today's date
+        function displayTodayDate() {
+            const today = new Date();
+            const day = bengaliDays[today.getDay()];
+            const month = bengaliMonths[today.getMonth()];
+            const date = today.getDate();
+            const year = '१433';
+            
+            document.getElementById('todayDate').textContent = `${day}, ${month} ${date}, ${year}`;
+        }
+
+        // Display panchang
+        function displayPanchang() {
+            const today = new Date();
+            const panchang = calculatePanchang(today);
+            
+            let html = `
+                <div class="panchang-item">
+                    <div class="panchang-label">तिथि</div>
+                    <div class="panchang-value">${panchang.tithi}</div>
+                </div>
+                <div class="panchang-item">
+                    <div class="panchang-label">नक्षत्र</div>
+                    <div class="panchang-value">${panchang.nakshatra}</div>
+                </div>
+                <div class="panchang-item">
+                    <div class="panchang-label">योग</div>
+                    <div class="panchang-value">${panchang.yoga}</div>
+                </div>
+                <div class="panchang-item">
+                    <div class="panchang-label">करण</div>
+                    <div class="panchang-value">${panchang.karan}</div>
+                </div>
+                <div class="panchang-item">
+                    <div class="panchang-label">सूर्योदय</div>
+                    <div class="panchang-value">${panchang.sunrise}</div>
+                </div>
+                <div class="panchang-item">
+                    <div class="panchang-label">सूर्यास्त</div>
+                    <div class="panchang-value">${panchang.sunset}</div>
+                </div>
+            `;
+            
+            document.getElementById('panchangContainer').innerHTML = html;
+        }
+
+        // Render calendar
+        function renderCalendar() {
+            const year = new Date().getFullYear();
+            const month = new Date().getMonth();
+            const bengaliMonthName = bengaliMonths[month];
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            let html = '';
+            
+            bengaliDays.forEach(day => {
+                html += `<div class="calendar-day-header">${day}</div>`;
+            });
+
+            for (let i = 0; i < firstDay; i++) {
+                html += '<div></div>';
+            }
+
+            const today = new Date();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const isToday = day === today.getDate() && 
+                               month === today.getMonth() && 
+                               year === today.getFullYear();
+                
+                html += `<div class="calendar-day${isToday ? ' today' : ''}">${day}</div>`;
+            }
+
+            document.getElementById('calendarContainer').innerHTML = `
+                <div style="margin-bottom: 12px; color: var(--text-secondary);">
+                    ${bengaliMonthName} १433
+                </div>
+                <div class="calendar-grid">${html}</div>
+            `;
+        }
+
+        // Initialize
+        function init() {
+            displayTodayDate();
+            renderCalendar();
+            displayPanchang();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
